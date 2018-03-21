@@ -1,0 +1,9 @@
+.idea
+venv/
+.env
+.coverage
+music/__pycache__/
+music/migrations/__pycache__/
+api/__pycache__/
+music/tests/__pycache__/
+music/views/__pycache__/
