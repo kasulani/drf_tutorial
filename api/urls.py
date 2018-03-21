@@ -3,5 +3,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/<version>/', include('music.urls'))
+    path('api/<version>(v1|v2)/', include('music.urls'))
 ]
