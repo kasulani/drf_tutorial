@@ -1,4 +1,4 @@
-# Shopping List API
+# Music Service API
 ## About
 This is a simple music service API that i created as an example for a tutorial for
 learning Django REST Framework.
