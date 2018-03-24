@@ -45,4 +45,9 @@ class SongsDetailView(generics.RetrieveAPIView):
             queryset = self.queryset.get(pk=kwargs["pk"])
             return Response(SongsSerializer(queryset).data)
         except Songs.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                data={
+                    "message": "Song with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )

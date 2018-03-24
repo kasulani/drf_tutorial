@@ -32,8 +32,42 @@ class BaseViewTest(APITestCase):
 
     @staticmethod
     def create_song(title="", artist=""):
+        """
+        Create a song in the db
+        :param title:
+        :param artist:
+        :return:
+        """
         if title != "" and artist != "":
             Songs.objects.create(title=title, artist=artist)
+
+    def post_a_song(self, data):
+        """
+        Make a post request to create a song
+        :param data:
+        :return:
+        """
+        return self.client.post(
+            reverse(
+                "songs-list-create",
+                kwargs={
+                    "version": "v1"
+                }
+            ),
+            data=json.dumps(data),
+            content_type='application/json'
+        )
+
+    def fetch_a_song(self, id=0):
+        return self.client.get(
+            reverse(
+                "songs-detail",
+                kwargs={
+                    "version": "v1",
+                    "pk": id
+                }
+            )
+        )
 
     def setUp(self):
         # add test data
@@ -41,11 +75,16 @@ class BaseViewTest(APITestCase):
         self.create_song("simple song", "konshens")
         self.create_song("love is wicked", "brick and lace")
         self.create_song("jam rock", "damien marley")
-        # post data
-        self.data = {
+        self.valid_data = {
             "title": "test song",
             "artist": "test artist"
         }
+        self.invalid_data = {
+            "title": "",
+            "artist": ""
+        }
+        self.valid_song_id = 1
+        self.invalid_song_id = 100
 
 
 class GetAllSongsTest(BaseViewTest):
@@ -74,20 +113,19 @@ class GetASingleSongsTest(BaseViewTest):
         returned
         """
         # hit the API endpoint
-        response = self.client.get(
-            reverse(
-                "songs-detail",
-                kwargs={
-                    "version": "v1",
-                    "pk": 1
-                }
-            )
-        )
+        response = self.fetch_a_song(self.valid_song_id)
         # fetch the data from db
-        expected = Songs.objects.get(pk=1)
+        expected = Songs.objects.get(pk=self.valid_song_id)
         serialized = SongsSerializer(expected)
         self.assertEqual(response.data, serialized.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # test with a song that does not exist
+        response = self.fetch_a_song(self.invalid_song_id)
+        self.assertEqual(
+            response.data["message"],
+            "Song with id: 100 does not exist"
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 class AddSongsTest(BaseViewTest):
@@ -97,15 +135,13 @@ class AddSongsTest(BaseViewTest):
         This test ensures that a single song can be added
         """
         # hit the API endpoint
-        response = self.client.post(
-            reverse(
-                "songs-list-create",
-                kwargs={
-                    "version": "v1"
-                }
-            ),
-            data=json.dumps(self.data),
-            content_type='application/json'
-        )
-        self.assertEqual(response.data, self.data)
+        response = self.post_a_song(self.valid_data)
+        self.assertEqual(response.data, self.valid_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        # test with invalid data
+        response = self.post_a_song(self.invalid_data)
+        self.assertEqual(
+            response.data["message"],
+            "Both title and artist are required to add a song"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
