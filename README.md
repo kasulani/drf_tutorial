@@ -1,6 +1,6 @@
 # Music Service API
 ## About
-This is a simple music service API that i created as an example for a tutorial for
+This is a simple music service API that I created as an example for a [tutorial](https://medium.com/backticks-tildes/lets-build-an-api-with-django-rest-framework-32fcf40231e5) for
 learning Django REST Framework.
 ## Goal
 The goal of this project is teach Django REST framework on novice programmers.
