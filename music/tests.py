@@ -58,3 +58,27 @@ class GetAllSongsTest(BaseViewTest):
         serialized = SongsSerializer(expected, many=True)
         self.assertEqual(response.data, serialized.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class GetASingleSongsTest(BaseViewTest):
+
+    def test_get_all_songs(self):
+        """
+        This test ensures that a single song of a given id is
+        returned
+        """
+        # hit the API endpoint
+        response = self.client.get(
+            reverse(
+                "songs-detail",
+                kwargs={
+                    "version": "v1",
+                    "pk": 1
+                }
+            )
+        )
+        # fetch the data from db
+        expected = Songs.objects.get(pk=1)
+        serialized = SongsSerializer(expected)
+        self.assertEqual(response.data, serialized.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
