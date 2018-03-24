@@ -1,3 +1,4 @@
+import json
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework.views import status
@@ -40,6 +41,11 @@ class BaseViewTest(APITestCase):
         self.create_song("simple song", "konshens")
         self.create_song("love is wicked", "brick and lace")
         self.create_song("jam rock", "damien marley")
+        # post data
+        self.data = {
+            "title": "test song",
+            "artist": "test artist"
+        }
 
 
 class GetAllSongsTest(BaseViewTest):
@@ -51,7 +57,7 @@ class GetAllSongsTest(BaseViewTest):
         """
         # hit the API endpoint
         response = self.client.get(
-            reverse("songs-all", kwargs={"version": "v1"})
+            reverse("songs-list-create", kwargs={"version": "v1"})
         )
         # fetch the data from db
         expected = Songs.objects.all()
@@ -62,7 +68,7 @@ class GetAllSongsTest(BaseViewTest):
 
 class GetASingleSongsTest(BaseViewTest):
 
-    def test_get_all_songs(self):
+    def test_get_a_song(self):
         """
         This test ensures that a single song of a given id is
         returned
@@ -82,3 +88,24 @@ class GetASingleSongsTest(BaseViewTest):
         serialized = SongsSerializer(expected)
         self.assertEqual(response.data, serialized.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class AddSongsTest(BaseViewTest):
+
+    def test_create_a_song(self):
+        """
+        This test ensures that a single song can be added
+        """
+        # hit the API endpoint
+        response = self.client.post(
+            reverse(
+                "songs-list-create",
+                kwargs={
+                    "version": "v1"
+                }
+            ),
+            data=json.dumps(self.data),
+            content_type='application/json'
+        )
+        self.assertEqual(response.data, self.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
