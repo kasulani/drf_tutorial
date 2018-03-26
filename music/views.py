@@ -62,3 +62,16 @@ class SongsDetailView(generics.RetrieveUpdateDestroyAPIView):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            a_song = self.queryset.get(pk=kwargs["pk"])
+            a_song.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Songs.DoesNotExist:
+            return Response(
+                data={
+                    "message": "Song with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )

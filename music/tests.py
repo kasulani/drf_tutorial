@@ -84,6 +84,17 @@ class BaseViewTest(APITestCase):
             )
         )
 
+    def delete_a_song(self, pk=0):
+        return self.client.delete(
+            reverse(
+                "songs-detail",
+                kwargs={
+                    "version": "v1",
+                    "pk": pk
+                }
+            )
+        )
+
     def setUp(self):
         # add test data
         self.create_song("like glue", "sean paul")
@@ -199,3 +210,17 @@ class UpdateSongsTest(BaseViewTest):
             "Both title and artist are required to add a song"
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteSongsTest(BaseViewTest):
+
+    def test_delete_a_song(self):
+        """
+        This test ensures that when a song of given id can be deleted
+        """
+        # hit the API endpoint
+        response = self.delete_a_song(1)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        # test with invalid data
+        response = self.delete_a_song(100)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
