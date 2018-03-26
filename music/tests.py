@@ -41,30 +41,45 @@ class BaseViewTest(APITestCase):
         if title != "" and artist != "":
             Songs.objects.create(title=title, artist=artist)
 
-    def post_a_song(self, data):
+    def make_a_request(self, kind="post", **kwargs):
         """
         Make a post request to create a song
-        :param data:
+        :param kind: HTTP VERB
         :return:
         """
-        return self.client.post(
-            reverse(
-                "songs-list-create",
-                kwargs={
-                    "version": "v1"
-                }
-            ),
-            data=json.dumps(data),
-            content_type='application/json'
-        )
+        if kind == "post":
+            return self.client.post(
+                reverse(
+                    "songs-list-create",
+                    kwargs={
+                        "version": kwargs["version"]
+                    }
+                ),
+                data=json.dumps(kwargs["data"]),
+                content_type='application/json'
+            )
+        elif kind == "put":
+            return self.client.put(
+                reverse(
+                    "songs-detail",
+                    kwargs={
+                        "version": kwargs["version"],
+                        "pk": kwargs["id"]
+                    }
+                ),
+                data=json.dumps(kwargs["data"]),
+                content_type='application/json'
+            )
+        else:
+            return None
 
-    def fetch_a_song(self, id=0):
+    def fetch_a_song(self, pk=0):
         return self.client.get(
             reverse(
                 "songs-detail",
                 kwargs={
                     "version": "v1",
-                    "pk": id
+                    "pk": pk
                 }
             )
         )
@@ -135,11 +150,50 @@ class AddSongsTest(BaseViewTest):
         This test ensures that a single song can be added
         """
         # hit the API endpoint
-        response = self.post_a_song(self.valid_data)
+        response = self.make_a_request(
+            kind="post",
+            version="v1",
+            data=self.valid_data
+        )
         self.assertEqual(response.data, self.valid_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         # test with invalid data
-        response = self.post_a_song(self.invalid_data)
+        response = self.make_a_request(
+            kind="post",
+            version="v1",
+            data=self.invalid_data
+        )
+        self.assertEqual(
+            response.data["message"],
+            "Both title and artist are required to add a song"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateSongsTest(BaseViewTest):
+
+    def test_update_a_song(self):
+        """
+        This test ensures that a single song can be updated. In this
+        test we update the second song in the db with valid data and
+        the third song with invalid data and make assertions
+        """
+        # hit the API endpoint
+        response = self.make_a_request(
+            kind="put",
+            version="v1",
+            id=2,
+            data=self.valid_data
+        )
+        self.assertEqual(response.data, self.valid_data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # test with invalid data
+        response = self.make_a_request(
+            kind="put",
+            version="v1",
+            id=3,
+            data=self.invalid_data
+        )
         self.assertEqual(
             response.data["message"],
             "Both title and artist are required to add a song"

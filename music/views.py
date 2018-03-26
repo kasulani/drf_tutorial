@@ -2,6 +2,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import status
 
+from .decorators import validate_request_data
 from .models import Songs
 from .serializers import SongsSerializer
 
@@ -14,24 +15,19 @@ class ListCreateSongsView(generics.ListCreateAPIView):
     queryset = Songs.objects.all()
     serializer_class = SongsSerializer
 
+    @validate_request_data
     def post(self, request, *args, **kwargs):
-        title = request.data.get("title", "")
-        artist = request.data.get("artist", "")
-        if not title and not artist:
-            return Response(
-                data={
-                    "message": "Both title and artist are required to add a song"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        a_song = Songs.objects.create(title=title, artist=artist)
+        a_song = Songs.objects.create(
+            title=request.data["title"],
+            artist=request.data["artist"]
+        )
         return Response(
             data=SongsSerializer(a_song).data,
             status=status.HTTP_201_CREATED
         )
 
 
-class SongsDetailView(generics.RetrieveAPIView):
+class SongsDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     GET songs/:id/
     PUT songs/:id/
@@ -42,8 +38,23 @@ class SongsDetailView(generics.RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         try:
-            queryset = self.queryset.get(pk=kwargs["pk"])
-            return Response(SongsSerializer(queryset).data)
+            a_song = self.queryset.get(pk=kwargs["pk"])
+            return Response(SongsSerializer(a_song).data)
+        except Songs.DoesNotExist:
+            return Response(
+                data={
+                    "message": "Song with id: {} does not exist".format(kwargs["pk"])
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    @validate_request_data
+    def put(self, request, *args, **kwargs):
+        try:
+            a_song = self.queryset.get(pk=kwargs["pk"])
+            serializer = SongsSerializer()
+            updated_song = serializer.update(a_song, request.data)
+            return Response(SongsSerializer(updated_song).data)
         except Songs.DoesNotExist:
             return Response(
                 data={
