@@ -1,5 +1,7 @@
 import json
 from django.urls import reverse
+from django.contrib.auth.models import User
+
 from rest_framework.test import APITestCase, APIClient
 from rest_framework.views import status
 from .models import Songs
@@ -95,7 +97,51 @@ class BaseViewTest(APITestCase):
             )
         )
 
+    def login_a_user(self, username="", password=""):
+        url = reverse(
+            "auth-login",
+            kwargs={
+                "version": "v1"
+            }
+        )
+        return self.client.post(
+            url,
+            data=json.dumps({
+                "username": username,
+                "password": password
+            }),
+            content_type="application/json"
+        )
+
+    def login_client(self, username="", password=""):
+        # get a token from DRF
+        response = self.client.post(
+            reverse('create-token'),
+            data=json.dumps(
+                {
+                    'username': username,
+                    'password': password
+                }
+            ),
+            content_type='application/json'
+        )
+        self.token = response.data['token']
+        # set the token in the header
+        self.client.credentials(
+            HTTP_AUTHORIZATION='Bearer ' + self.token
+        )
+        self.client.login(username=username, password=password)
+        return self.token
+
     def setUp(self):
+        # create a admin user
+        self.user = User.objects.create_superuser(
+            username="test_user",
+            email="test@mail.com",
+            password="testing",
+            first_name="test",
+            last_name="user",
+        )
         # add test data
         self.create_song("like glue", "sean paul")
         self.create_song("simple song", "konshens")
@@ -120,6 +166,7 @@ class GetAllSongsTest(BaseViewTest):
         This test ensures that all songs added in the setUp method
         exist when we make a GET request to the songs/ endpoint
         """
+        self.login_client('test_user', 'testing')
         # hit the API endpoint
         response = self.client.get(
             reverse("songs-list-create", kwargs={"version": "v1"})
@@ -138,6 +185,7 @@ class GetASingleSongsTest(BaseViewTest):
         This test ensures that a single song of a given id is
         returned
         """
+        self.login_client('test_user', 'testing')
         # hit the API endpoint
         response = self.fetch_a_song(self.valid_song_id)
         # fetch the data from db
@@ -160,6 +208,7 @@ class AddSongsTest(BaseViewTest):
         """
         This test ensures that a single song can be added
         """
+        self.login_client('test_user', 'testing')
         # hit the API endpoint
         response = self.make_a_request(
             kind="post",
@@ -189,6 +238,7 @@ class UpdateSongsTest(BaseViewTest):
         test we update the second song in the db with valid data and
         the third song with invalid data and make assertions
         """
+        self.login_client('test_user', 'testing')
         # hit the API endpoint
         response = self.make_a_request(
             kind="put",
@@ -218,9 +268,28 @@ class DeleteSongsTest(BaseViewTest):
         """
         This test ensures that when a song of given id can be deleted
         """
+        self.login_client('test_user', 'testing')
         # hit the API endpoint
         response = self.delete_a_song(1)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         # test with invalid data
         response = self.delete_a_song(100)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class AuthLoginUserTest(BaseViewTest):
+    """
+    Tests for the auth/login/ endpoint
+    """
+
+    def test_login_user_with_valid_credentials(self):
+        # test login with valid credentials
+        response = self.login_a_user("test_user", "testing")
+        # assert token key exists
+        self.assertIn("token", response.data)
+        # assert status code is 200 OK
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # test login with invalid credentials
+        response = self.login_a_user("anonymous", "pass")
+        # assert status code is 401 UNAUTHORIZED
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
