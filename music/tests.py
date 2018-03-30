@@ -116,7 +116,7 @@ class BaseViewTest(APITestCase):
     def login_client(self, username="", password=""):
         # get a token from DRF
         response = self.client.post(
-            reverse('create-token'),
+            reverse("create-token"),
             data=json.dumps(
                 {
                     'username': username,
@@ -132,6 +132,24 @@ class BaseViewTest(APITestCase):
         )
         self.client.login(username=username, password=password)
         return self.token
+
+    def register_a_user(self, username="", password="", email=""):
+        return self.client.post(
+            reverse(
+                "auth-register",
+                kwargs={
+                    "version": "v1"
+                }
+            ),
+            data=json.dumps(
+                {
+                    "username": username,
+                    "password": password,
+                    "email": email
+                }
+            ),
+            content_type='application/json'
+        )
 
     def setUp(self):
         # create a admin user
@@ -293,3 +311,19 @@ class AuthLoginUserTest(BaseViewTest):
         response = self.login_a_user("anonymous", "pass")
         # assert status code is 401 UNAUTHORIZED
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class AuthRegisterUserTest(BaseViewTest):
+    """
+    Tests for auth/register/ endpoint
+    """
+    def test_register_a_user(self):
+        response = self.register_a_user("new_user", "new_pass", "new_user@mail.com")
+        # assert status code is 201 CREATED
+        self.assertEqual(response.data["username"], "new_user")
+        self.assertEqual(response.data["email"], "new_user@mail.com")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        # test with invalid data
+        response = self.register_a_user()
+        # assert status code
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

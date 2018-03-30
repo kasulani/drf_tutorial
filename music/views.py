@@ -9,7 +9,7 @@ from rest_framework_jwt.settings import api_settings
 
 from .decorators import validate_request_data
 from .models import Songs
-from .serializers import SongsSerializer, TokenSerializer
+from .serializers import SongsSerializer, TokenSerializer, UserSerializer
 
 # Get the JWT settings
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
@@ -114,3 +114,29 @@ class LoginView(generics.CreateAPIView):
             serializer.is_valid()
             return Response(serializer.data)
         return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+
+class RegisterUsers(generics.CreateAPIView):
+    """
+    POST auth/register/
+    """
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        username = request.data.get("username", "")
+        password = request.data.get("password", "")
+        email = request.data.get("email", "")
+        if not username and not password and not email:
+            return Response(
+                data={
+                    "message": "username, password and email is required to register a user"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        new_user = User.objects.create_user(
+            username=username, password=password, email=email
+        )
+        return Response(
+            data=UserSerializer(new_user).data,
+            status=status.HTTP_201_CREATED
+        )
