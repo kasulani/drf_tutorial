@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    command: bash -c "python manage.py makemigrations && python manage.py migrate && gunicorn -w 1 --bind 0.0.0.0:8000 api.wsgi"
+    container_name: music_service
+    volumes:
+      - .:/music_service
+    ports:
+      - "8000:8000"
+
+  nginx:
+    build: ./nginx
+    container_name: ng_server
+    depends_on:
+      - web
+    command: nginx -g 'daemon off;'
+    ports:
+      - "80:80"
+    volumes:
+      - ./static:/var/www/static
